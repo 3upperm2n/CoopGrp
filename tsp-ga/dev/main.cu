@@ -8,7 +8,14 @@
 #include "common.h"
 #include "ga_gpu.h"
 
+#include <cuda_runtime.h>
+#include <helper_functions.h> 
+#include <helper_cuda.h>
+
+#include <cooperative_groups.h>
+
 using namespace std;
+namespace cg = cooperative_groups;
 
 int main(int argc, char **argv)
 {
