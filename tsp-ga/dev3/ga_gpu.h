@@ -28,7 +28,19 @@ extern "C" __global__ void fitness_kernel(World* pop, int pop_size, float* fit_s
 
 __global__ void max_fit_kernel(World* pop, int pop_size, float* max, int* ix);
 
-extern "C" __global__ void selection_kernel(World* pop, int pop_size, float* rand_nums, int* sel_ix);
+//extern "C" __global__ void selection_kernel(World* pop, int pop_size, float* rand_nums, int* sel_ix);
+
+extern "C" __global__ void selection_child_kernel(World* old_pop, 
+		int pop_size,
+		float* rand_nums,
+		int* sel_ix,
+		World* new_pop,
+		float prob_crossover,
+		float *prob_cross,
+		int *cross_loc,
+		float prob_mutation,
+		float *prob_mutate,
+		int *mutate_loc);
 
 
 // Main kernal for creating children of the population
@@ -42,6 +54,8 @@ extern "C" __global__ void selection_kernel(World* pop, int pop_size, float* ran
 // 	prob_mutation  : The probability of mutation occuring
 // 	prob_mutate    : The probabilities of mutation occuring
 // 	mutate_loc     : The mutation locations
+
+
 __global__ void child_kernel(World* old_pop, World* new_pop, int pop_size, 
 	int* sel_ix, float prob_crossover, float* prob_cross, int* cross_loc, 
 	float prob_mutation, float* prob_mutate, int* mutate_loc);
@@ -53,6 +67,6 @@ bool g_evaluate(World *pop, int pop_size, dim3 Block, dim3 Grid, int blk_size, i
 int g_select_leader(World* pop, int pop_size, World* generation_leader,World* best_leader, dim3 Block, dim3 Grid);
 
 bool g_execute(float prob_mutation, float prob_crossover, int pop_size,int max_gen, World* world, 
-int seed, int, int, int, int, int numSms);
+int seed, int blk_size, int grid_size, int pop_bytes, int numSms);
 
 #endif

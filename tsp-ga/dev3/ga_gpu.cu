@@ -167,6 +167,7 @@ __global__ void max_fit_kernel(World* pop, int pop_size, World* gen_leader)
 }
 
 
+/*
 extern "C" __global__ void selection_kernel(World* pop, int pop_size, float* rand_nums, int* sel_ix)
 {
 
@@ -185,6 +186,47 @@ extern "C" __global__ void selection_kernel(World* pop, int pop_size, float* ran
 			}
 		}
 	}
+}
+*/
+
+extern "C" __global__ void selection_child_kernel(World* old_pop, int pop_size, float* rand_nums, int* sel_ix,
+		World *new_pop, float prob_crossover, float *prob_cross, int *cross_loc, 
+		float prob_mutation, float *prob_mutate, int *mutate_loc)
+{
+
+	cg::grid_group grid = cg::this_grid();
+	int tid = grid.thread_rank();
+	int TwicePopSize = pop_size + pop_size;
+
+	for (int tid = grid.thread_rank(); tid < TwicePopSize; tid += grid.size()) {
+		// Select the parents
+		for (int j=0; j<pop_size; j++)
+		{
+			if (rand_nums[tid] <= old_pop[j].fit_prob)
+			{
+				sel_ix[tid] = j;
+				break;
+			}
+		}
+	}
+
+	cg::sync(grid);
+
+	for (int tid = grid.thread_rank(); tid < pop_size; tid += grid.size()) {
+		// Determine how many children are born
+		if (prob_cross[tid] <= prob_crossover)
+		{
+			crossover(old_pop, new_pop, sel_ix, cross_loc, tid);
+			if(prob_mutate[tid] <= prob_mutation) mutate(new_pop, mutate_loc, tid);
+		}
+		else // Select the first parent
+		{
+			// Add child to new population
+			memcpy(new_pop[tid].cities, old_pop[sel_ix[2*tid]].cities, old_pop[tid].num_cities * sizeof(City));
+			if(prob_mutate[tid] <= prob_mutation) mutate(new_pop, mutate_loc, tid);
+		}
+	}
+
 }
 
 
@@ -293,7 +335,7 @@ bool g_evaluate(World *pop, int pop_size, dim3 Block, dim3 Grid, int blk_size, i
 	cudaEventSynchronize(stop);
 	float timer_ms = 0.f;
 	cudaEventElapsedTime(&timer_ms, start, stop);
-	printf("[Timing] \t g_evaluate : %f (ms)\n", timer_ms);
+	printf("[Timing] \t\t g_evaluate : %f (ms)\n", timer_ms);
 
 	cudaFree(fit_sum_d); 
 	return false;
@@ -347,16 +389,20 @@ int g_select_leader(World* pop, int pop_size, World* generation_leader,
 }
 
 bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_gen, World* world, int seed, 
-		int blk_size, int grid_size, int grid_size2, int pop_bytes, int numSms)
+		int blk_size, int grid_size, int pop_bytes, int numSms)
 {
 	//=================================//
 	// Cooperative Kernel Configuration 
 	//=================================//
 	int numBlocksPerSm = 0;
 	checkCudaErrors(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm, 
-				selection_kernel, THREADS_PER_BLOCK, 0));
-	//printf("numBlocksPerSm: %d\n", numBlocksPerSm);
+				selection_child_kernel, THREADS_PER_BLOCK, 0));
+	printf("numBlocksPerSm: %d\n", numBlocksPerSm);
 	dim3 dimGrid(numSms*numBlocksPerSm, 1, 1), dimBlock(THREADS_PER_BLOCK, 1, 1);
+
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
 
 	
 
@@ -369,7 +415,6 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 
 	dim3 Block(blk_size);
 	dim3 Grid(grid_size, grid_size);
-	dim3 Grid2(grid_size2, grid_size2);
 
 	World *old_pop_d, *new_pop_d;
 
@@ -443,6 +488,13 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 		(void*)&pop_size,
 		(void*)&prob_select_d,
 		(void*)&sel_ix_d,
+		(void*)&new_pop_d, // below are for child kernel
+		(void*)&prob_crossover,
+		(void*)&prob_cross_d,
+		(void*)&cross_loc_d,
+		(void*)&prob_mutation,
+		(void*)&prob_mutate_d,
+		(void*)&mutate_loc_d,
 	};
 
 
@@ -482,20 +534,18 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 		if (checkForError(cudaMemcpy(mutate_loc_d, mutate_loc, 2 * pop_size * sizeof(int), cudaMemcpyHostToDevice)))
 			return true;
 
+		cudaEventRecord(start);
 
 		// Select the parents
-		checkCudaErrors(cudaLaunchCooperativeKernel((void *)selection_kernel, dimGrid, dimBlock, kernelArgs, 0, NULL));
-		//selection_kernel <<< Grid2, Block >>> (old_pop_d, pop_size, prob_select_d, sel_ix_d);
+		//checkCudaErrors(cudaLaunchCooperativeKernel((void *)selection_kernel, dimGrid, dimBlock, kernelArgs, 0, NULL));
+		checkCudaErrors(cudaLaunchCooperativeKernel((void *)selection_child_kernel, dimGrid, dimBlock, kernelArgs, 0, NULL));
 
 
-
-
-
-
-		// Create the children (form the new population entirely on the GPU!)
-		child_kernel <<< Grid, Block >>> (old_pop_d, new_pop_d, pop_size, sel_ix_d, prob_crossover, prob_cross_d, cross_loc_d, prob_mutation, prob_mutate_d, mutate_loc_d);
-		//cudaDeviceSynchronize();
-		if (checkForKernelError("child_kernel is failing")) return true;
+		cudaEventRecord(stop);
+		cudaEventSynchronize(stop);
+		float timer_ms = 0.f;
+		cudaEventElapsedTime(&timer_ms, start, stop);
+		printf("[Timing] \t\t selection + child (kernels): %f (ms)\n", timer_ms);
 
 		// Calculate the fitnesses on the new population
 		error = g_evaluate(new_pop_d, pop_size, Block, Grid, blk_size, grid_size, numSms);

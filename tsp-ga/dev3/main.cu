@@ -109,7 +109,6 @@ int main(int argc, char **argv)
 		// Tile and grid variables
 		int tile_size  = THREADS_PER_BLOCK; // 1024
 		int grid_size  = (int)ceil((float)pop_size / tile_size);
-		int grid_size2 = (int)ceil((float)(2 * pop_size) / tile_size);
 
 		//=================//
 		// 
@@ -120,7 +119,7 @@ int main(int argc, char **argv)
 		{
 
 			if(g_execute(prob_mutation, prob_crossover, pop_size, max_gen,world, ga_seed,
-			tile_size, grid_size, grid_size2, pop_bytes, numSms))
+			tile_size, grid_size, pop_bytes, numSms))
 				{
 					cout<<"GPU Related error - Could be an issue if GPU is being used by others"<<endl
 						<<"Please try running again when there is memory free + GPU is free"	<<endl;
