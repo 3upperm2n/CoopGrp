@@ -452,24 +452,6 @@ bool g_evaluate(World *pop, int pop_size, dim3 Block, dim3 Grid, int blk_size, i
 
 	checkCudaErrors(cudaLaunchCooperativeKernel((void *)fitness_kernel, dimGrid, dimBlock, kernelArgs, 0, NULL));
 
-/*
-	// Calculate the fitnesses
-	//fitness_kernel <<< Grid, Block >>> (pop, pop_size, fit_sum_d);
-	fitness_kernel <<< grid_size, blk_size >>> (pop, pop_size, fit_sum_d);
-	if (checkForKernelError("fitness_kernel is failing ")) return true;
-*/
-
-	// Calculate the total sum and compute the partial probabilities
-	//fit_sum_kernel <<< Grid, Block >>> (pop, pop_size, fit_sum_d);
-	//if (checkForKernelError("fit_sum_kernel failing ")) return true;
-
-	// Compute the full probabilities
-	//int grid_size = (int)ceil((float)pop_size / THREADS_PER_BLOCK);
-	//printf("grid_size : %d\n", grid_size); // 196
-
-	//fit_prob_kernel <<< Grid, Block >>> (pop, pop_size, fit_sum_d);
-	////if (checkForKernelError("fit_prob_kernel failing ")) return true;
-
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
 	float timer_ms = 0.f;
@@ -531,6 +513,10 @@ int g_select_leader(World* pop, int pop_size, World* generation_leader,
 bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_gen, World* world, int seed, 
 		int blk_size, int grid_size, int grid_size2, int pop_bytes)
 {
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
 	// Error checking variables
 	bool error;
 
@@ -641,17 +627,24 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 		if (checkForError(cudaMemcpy(mutate_loc_d, mutate_loc, 2 * pop_size * sizeof(int), cudaMemcpyHostToDevice)))
 			return true;
 
+		cudaEventRecord(start);
+
 		// Select the parents
 		selection_kernel <<< Grid2, Block >>> (old_pop_d, pop_size, prob_select_d, sel_ix_d);
-		cudaDeviceSynchronize();
-		if (checkForKernelError("slection_kernel is failing "))
-			return true;
+		if (checkForKernelError("slection_kernel is failing ")) return true;
 
 		// Create the children (form the new population entirely on the GPU!)
 		child_kernel <<< Grid, Block >>> (old_pop_d, new_pop_d, pop_size, sel_ix_d, prob_crossover, prob_cross_d, cross_loc_d, prob_mutation, prob_mutate_d, mutate_loc_d);
-		cudaDeviceSynchronize();
-		if (checkForKernelError("child_kernel is failing"))
-			return true;
+		if (checkForKernelError("child_kernel is failing")) return true;
+
+		cudaEventRecord(stop);
+		cudaEventSynchronize(stop);
+		float timer_ms = 0.f;
+		cudaEventElapsedTime(&timer_ms, start, stop);
+		printf("[Timing] \t selection + child (kernels): %f (ms)\n", timer_ms);
+
+
+
 
 		// Calculate the fitnesses on the new population
 		error = g_evaluate(new_pop_d, pop_size, Block, Grid, blk_size, grid_size);
