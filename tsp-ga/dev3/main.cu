@@ -53,10 +53,9 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-		printf("GPU Device %d: \"%s\" with compute capability %d.%d\n\n", 
-		devID, deviceProp.name, deviceProp.major, deviceProp.minor);
 		numSms = deviceProp.multiProcessorCount;
-		printf("numSms: %d\n", numSms);
+		printf("GPU Device %d: \"%s\" with compute capability %d.%d (%d)SMs\n\n", 
+		devID, deviceProp.name, deviceProp.major, deviceProp.minor, numSms);
 	}
 
 	if (numSms == 0) {
