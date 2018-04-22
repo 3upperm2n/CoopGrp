@@ -7,6 +7,14 @@
 #include "world.h"
 
 
+#include <cuda_runtime.h>
+#include <helper_functions.h> 
+#include <helper_cuda.h>
+
+#include <cooperative_groups.h>
+
+#define THREADS_PER_BLOCK 1024 
+
 bool checkForKernelError(const char *err_msg);
 __device__ int getGlobalIdx_2D_2D();
 
@@ -15,8 +23,13 @@ __device__ int getGlobalIdx_2D_2D();
 // cross_loc : The crossover locations
 __device__ void crossover(World* old_pop, World* new_pop, int* sel_ix,int* cross_loc, int tid);
 __device__ void mutate(World* new_pop, int* mutate_loc, int tid);
-__global__ void fitness_kernel(World* pop, int pop_size);
+
+//__global__ void fitness_kernel(World* pop, int pop_size);
+extern "C" __global__ void fitness_kernel(World* pop, int pop_size);
+//extern "C" __global__ void fitness_kernel(World* pop, int pop_size, float *fit_sum);
+
 __global__ void fit_sum_kernel(World* pop, int pop_size, float* fit_sum);
+
 __global__ void fit_prob_kernel(World* pop, int pop_size, float* fit_sum);
 __global__ void max_fit_kernel(World* pop, int pop_size, float* max, int* ix);
 __global__ void selection_kernel(World* pop, int pop_size, float* rand_nums, int* sel_ix);
@@ -39,7 +52,7 @@ __global__ void child_kernel(World* old_pop, World* new_pop, int pop_size,
 
 bool g_initialize(World* world, World* pop, int pop_size, int seed);
 
-bool g_evaluate(World *pop, int pop_size, dim3 Block, dim3 Grid);
+bool g_evaluate(World *pop, int pop_size, dim3 Block, dim3 Grid, int, int);
 
 int g_select_leader(World* pop, int pop_size, World* generation_leader,World* best_leader, dim3 Block, dim3 Grid);
 

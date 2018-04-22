@@ -3,7 +3,7 @@ CUDA_PATH = /usr/local/cuda
 #CUDA_PATH = /pub/cuda-7.5
 NVCC = $(CUDA_PATH)/bin/nvcc -ccbin $(CC)
 CFLAGS = -L$(CUDA_PATH)/lib64 -lcudart -lcuda -lcurand -lm  
-NVCCFLAGS= -D_FORCE_INLINES -Xcompiler -fPIC  -I$(CUDA_PATH)/samples/common/inc -I$(CUDA_PATH)/include
+NVCCFLAGS= -I$(CUDA_PATH)/samples/common/inc -I$(CUDA_PATH)/include -dc -D_FORCE_INLINES -Xcompiler -fPIC  
 COPTFLAGS = -O3 -g -std=c++11 
 LDFLAGS =
 
@@ -22,7 +22,7 @@ tsp-ga-cpu: main_cpu.o
 	$(NVCC) $(GENCODE_FLAGS) main_cpu.o world.o ga_cpu.o common.o  $(CFLAGS) $(COPTFLAGS) -o tsp-ga-cpu
 
 ga_gpu.o: ga_gpu.cu  world.h
-	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) -c ga_gpu.cu $(CFLAGS) $(COPTFLAGS) 
+	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) $(CFLAGS) $(COPTFLAGS) -c ga_gpu.cu 
 
 
 ga_cpu.o: ga_cpu.cpp  world.h common.h

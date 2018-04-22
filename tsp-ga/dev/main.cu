@@ -8,14 +8,28 @@
 #include "common.h"
 #include "ga_gpu.h"
 
-#include <cuda_runtime.h>
-#include <helper_functions.h> 
-#include <helper_cuda.h>
-
-#include <cooperative_groups.h>
 
 using namespace std;
-namespace cg = cooperative_groups;
+//namespace cg = cooperative_groups;
+
+/*
+void getNumBlocksAndThreads(int n, int maxBlocks, int maxThreads, int &blocks, int &threads)
+{
+	if (n == 1)
+	{
+		threads = 1;
+		blocks = 1;
+	}
+	else
+	{
+		threads = (n < maxThreads*2) ? nextPow2(n / 2) : maxThreads;
+		blocks = max(1, n / (threads * 2));
+	}
+
+	blocks = min(maxBlocks, blocks);
+}
+*/
+
 
 int main(int argc, char **argv)
 {
@@ -85,10 +99,13 @@ int main(int argc, char **argv)
 
 
 		// Tile and grid variables
-		int tile_size  = 1024;
+		int tile_size  = THREADS_PER_BLOCK; // 1024
 		int grid_size  = (int)ceil((float)pop_size / tile_size);
 		int grid_size2 = (int)ceil((float)(2 * pop_size) / tile_size);
 
+		//=================//
+		// 
+		//=================//
 
 		cout << "GPU Version - START" << endl;
 		for (int j=0; j<iterations; j++)
