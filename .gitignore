@@ -5,3 +5,7 @@
 *.cubin
 *.fatbin
 *.swp
+
+*.so
+*.o
+*.a
