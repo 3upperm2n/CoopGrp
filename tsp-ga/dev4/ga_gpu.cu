@@ -1,6 +1,7 @@
 #include <iostream>
 #include <algorithm>
 #include <functional> // for bind()
+#include <ctime> // clock
 
 // Program includes
 #include "ga_gpu.h"
@@ -507,6 +508,9 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 		// Generate all probabilities for each step
 		// Note : The order the random numbers are generated must be consistent to
 		// ensure the results will match the CPU.
+
+		clock_t begin = clock();
+
 		for (int j=0; j<pop_size; j++)
 		{
 			prob_select[2*j]     = (float)rgen();
@@ -533,6 +537,21 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 			return true;
 		if (checkForError(cudaMemcpy(mutate_loc_d, mutate_loc, 2 * pop_size * sizeof(int), cudaMemcpyHostToDevice)))
 			return true;
+
+
+		clock_t end = clock();
+		double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+
+		cout << "rgen() time = " << elapsed_secs << "(s)" << endl;
+
+
+		//------------------------------------------------------------------------//
+		// use unified memory
+		//------------------------------------------------------------------------//
+
+
+
+
 
 		cudaEventRecord(start);
 
