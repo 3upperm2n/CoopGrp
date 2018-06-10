@@ -72,25 +72,50 @@ __host__ __device__ float thrust_rng(unsigned int thread_id)
 }
 
 
-__global__ void kern_rng_using_thrust(float *data)
+__global__ void kern_rng_using_thrust(float *data, int N)
 {
 	uint tid = threadIdx.x + blockIdx.x * blockDim.x;
-	data[tid] = thrust_rng(tid);
+	if (tid < N)
+	{
+		/*
+		float v1 = thrust_rng(tid);
+		float v2 = thrust_rng(tid);
+		printf("%d: \t %f \t %f\n", tid, v1, v2);
+		data[tid] = v1 + v2; 
+		*/
+		data[tid] = thrust_rng(tid); 
+	}
 }
 
 
+__global__ void setup_kernel ( curandState * state, unsigned int seed, int N)
+{
+	unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	if (tid < N)
+		curand_init( seed, tid, 0, &state[tid] );
+} 
 
-__global__ void kern_rng_using_cuRand(float *data, const unsigned int seed)                                
+
+__global__ void kern_rng_using_cuRand(float *data, curandState* globalState, int N)
 {
 	unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
-	//curandState_t state;
-	curandStateMRG32k3a state;
-		                                                                                
-	// Initialise the RNG                                                       
-	curand_init(seed, tid, 0, &state);                                 
+	if (tid < N)
+	{
+		//printf("tid :%d\n", tid);
+		curandState state = globalState[tid];
 
-	data[tid] = curand_uniform(&state);
+		/*
+		float a1 = curand_uniform(&state);
+		float a2 = curand_uniform(&state);
+		//printf("%d: \t %f\n", tid, a1);
+		//printf("%d: \t %f \t %f\n", tid, a1,a2);
+		data[tid] = a1 + a2; 
+		*/
+
+		data[tid] = curand_uniform(&state);
+
+	}
 
 } 
 
@@ -109,14 +134,15 @@ int main(int argc, char **argv)
 	float *data;	
 
 	int N = 10000;
+	//int N = 32;
 	size_t N_bytes = sizeof(float) * N;
 
 	cudaMallocManaged((void**)&data, N_bytes);
 
 
+	curandState* devStates;
+	cudaMallocManaged((void**)&devStates, N * sizeof(curandState));
 
-	//-------------------------------------------------------------------------
-	// rng using thrust
 	//-------------------------------------------------------------------------
 	int blksize = 1024;
 	int grdsize = (N + blksize - 1) / blksize;
@@ -127,7 +153,7 @@ int main(int argc, char **argv)
 
 	cudaEventRecord(start);
 
-	kern_rng_using_thrust <<< grdsize, blksize >>> (data);
+	kern_rng_using_thrust <<< grdsize, blksize >>> (data, N);
 
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -145,7 +171,9 @@ int main(int argc, char **argv)
 
 	cudaEventRecord(start);
 
-	kern_rng_using_cuRand <<<grdsize, blksize >>>(data, ga_seed); 
+	setup_kernel <<< grdsize, blksize >>> (devStates, ga_seed, N);
+
+	kern_rng_using_cuRand <<<grdsize, blksize >>>(data, devStates, N); 
 
 	cudaEventRecord(stop);
 	cudaEventSynchronize(stop);
@@ -158,6 +186,9 @@ int main(int argc, char **argv)
 
 
 	cudaFree(data);
+	cudaFree(devStates);
+
+
 	cudaEventDestroy(start);
 	cudaEventDestroy(stop);
 
