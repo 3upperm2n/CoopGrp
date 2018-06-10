@@ -7,6 +7,9 @@
 #include "ga_gpu.h"
 #include "common.h"
 
+#include <curand.h>
+#include <curand_kernel.h>
+
 
 using namespace std;
 namespace cg = cooperative_groups;
@@ -259,6 +262,57 @@ __global__ void child_kernel(World* old_pop, World* new_pop, int pop_size,    \
 	}
 }
 
+
+__global__ void setup_kernel ( curandState * state, unsigned int seed, int N)
+{
+	unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
+	if (tid < N)
+		curand_init( seed, tid, 0, &state[tid] );
+} 
+
+
+
+
+__global__ void genProb(const int pop_size ,const int seed, float* prob_select, 
+		float* prob_cross, 
+		float* prob_mutate,
+		int* cross_loc,
+		int* mutate_loc,
+		const int num_cities,
+		curandState* globalState)
+{
+	uint gid = threadIdx.x + blockIdx.x * blockDim.x;	
+
+	if (gid < pop_size)
+	{
+		curandState state = globalState[gid];
+
+		prob_select[gid + gid]     = curand_uniform(&state);
+		prob_select[gid + gid + 1] = curand_uniform(&state);
+
+		prob_cross[gid] = curand_uniform(&state);
+
+		prob_mutate[gid] = curand_uniform(&state);
+
+		cross_loc[gid]  = (int)(curand_uniform(&state) * (num_cities - 1));
+
+
+		int mutate_1 = (int)(curand_uniform(&state) * num_cities);
+		int mutate_2 = (int)(curand_uniform(&state) * num_cities);
+
+		while (mutate_2 == mutate_1)
+		{
+			mutate_2 = (int)(curand_uniform(&state) * num_cities);
+		}
+
+		mutate_loc[gid + gid]      = mutate_1;
+		mutate_loc[gid + gid + 1]  = mutate_2;
+	}
+
+}
+
+
+
 bool g_initialize(World* world, World* pop_d, int pop_size, int seed)
 {
 	bool error;
@@ -405,6 +459,7 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
 
+	float timer_ms = 0.f;
 	
 
 	// Error checking variables
@@ -413,6 +468,7 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 	// Random number generation
 	mt19937::result_type rseed = seed;
 	auto rgen = bind(uniform_real_distribution<>(0, 1), mt19937(rseed));
+	// __device__ float curand_uniform ( curandStateMtgp32_t* state )
 
 	dim3 Block(blk_size);
 	dim3 Grid(grid_size, grid_size);
@@ -499,7 +555,16 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 	};
 
 
+	curandState* devStates;
+	cudaMallocManaged((void**)&devStates, pop_size * sizeof(curandState));
 
+	setup_kernel <<< (pop_size + 1023) / 1024,1024 >>> (devStates, seed, pop_size);
+
+
+
+
+
+	cout << "pop_size : " << pop_size << endl;
 
 	// Continue through all generations
 	for (int i=0; i<max_gen; i++)
@@ -509,11 +574,17 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 		// Note : The order the random numbers are generated must be consistent to
 		// ensure the results will match the CPU.
 
+
+		/*
 		clock_t begin = clock();
 
 		for (int j=0; j<pop_size; j++)
 		{
 			prob_select[2*j]     = (float)rgen();
+
+			//cout << prob_select[2*j]  << endl;
+			//if (j == 2) break;
+
 			prob_select[2*j + 1] = (float)rgen();
 			prob_cross[j]        = (float)rgen();
 			cross_loc[j]         = (int)(rgen() * (world->num_cities - 1));
@@ -541,13 +612,25 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 
 		clock_t end = clock();
 		double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+		cout << "[Timing] genProb (default) = " << elapsed_secs << "(s)" << endl;
+		*/
 
-		cout << "rgen() time = " << elapsed_secs << "(s)" << endl;
 
+		//-----------//
+		// rand using gpu kernel
+		//-----------//
+		cudaEventRecord(start);
 
-		//------------------------------------------------------------------------//
-		// use unified memory
-		//------------------------------------------------------------------------//
+		setup_kernel <<< (pop_size + 1023) / 1024,1024 >>> (devStates, seed, pop_size);
+
+		genProb <<< (pop_size + 1023) / 1024,1024 >>> (pop_size, seed, 
+				prob_select_d, prob_cross_d, prob_mutate_d, cross_loc_d, mutate_loc_d, world->num_cities, devStates);
+
+		cudaEventRecord(stop);
+		cudaEventSynchronize(stop);
+		timer_ms = 0.f;
+		cudaEventElapsedTime(&timer_ms, start, stop);
+		printf("[Timing] \t\t randProb: %f (ms)\n", timer_ms);
 
 
 
@@ -562,7 +645,7 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
-		float timer_ms = 0.f;
+		timer_ms = 0.f;
 		cudaEventElapsedTime(&timer_ms, start, stop);
 		printf("[Timing] \t\t selection + child (kernels): %f (ms)\n", timer_ms);
 
@@ -591,5 +674,9 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 	free_world(generation_leader); cudaFree(old_pop_d); cudaFree(cross_loc_d); 
 	cudaFree(new_pop_d); cudaFree(prob_select_d); cudaFree(prob_cross_d);
 	cudaFree(prob_mutate_d); cudaFree(mutate_loc_d); cudaFree(sel_ix_d);	
+
+	cudaFree(devStates);
+
+
 	return false;
 }

@@ -2,7 +2,7 @@ CC = g++
 CUDA_PATH = /usr/local/cuda
 #CUDA_PATH = /pub/cuda-7.5
 NVCC = $(CUDA_PATH)/bin/nvcc -ccbin $(CC)
-CFLAGS = -L$(CUDA_PATH)/lib64 -lcudart -lcuda -lcurand -lm  
+CFLAGS = -L$(CUDA_PATH)/lib64 -lcudart -lcuda -lm  -lcurand -lcurand_static -lculibos
 NVCCFLAGS= -I$(CUDA_PATH)/samples/common/inc -I$(CUDA_PATH)/include -dc -D_FORCE_INLINES -Xcompiler -fPIC  
 COPTFLAGS = -O3 -g -std=c++11 
 LDFLAGS =
