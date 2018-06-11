@@ -262,13 +262,14 @@ __global__ void child_kernel(World* old_pop, World* new_pop, int pop_size,    \
 	}
 }
 
-
+/*
 __global__ void setup_kernel ( curandState * state, unsigned int seed, int N)
 {
 	unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
 	if (tid < N)
 		curand_init( seed, tid, 0, &state[tid] );
 } 
+*/
 
 
 
@@ -278,14 +279,14 @@ __global__ void genProb(const int pop_size ,const int seed, float* prob_select,
 		float* prob_mutate,
 		int* cross_loc,
 		int* mutate_loc,
-		const int num_cities,
-		curandState* globalState)
+		const int num_cities)
 {
 	uint gid = threadIdx.x + blockIdx.x * blockDim.x;	
 
 	if (gid < pop_size)
 	{
-		curandState state = globalState[gid];
+		curandState state;
+		curand_init(seed, gid, 0, &state);
 
 		prob_select[gid + gid]     = curand_uniform(&state);
 		prob_select[gid + gid + 1] = curand_uniform(&state);
@@ -555,10 +556,9 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 	};
 
 
-	curandState* devStates;
-	cudaMallocManaged((void**)&devStates, pop_size * sizeof(curandState));
-
-	setup_kernel <<< (pop_size + 1023) / 1024,1024 >>> (devStates, seed, pop_size);
+	//curandState* devStates;
+	//cudaMallocManaged((void**)&devStates, pop_size * sizeof(curandState));
+	//setup_kernel <<< (pop_size + 1023) / 1024,1024 >>> (devStates, seed, pop_size);
 
 
 
@@ -621,10 +621,10 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 		//-----------//
 		cudaEventRecord(start);
 
-		setup_kernel <<< (pop_size + 1023) / 1024,1024 >>> (devStates, seed, pop_size);
+		//setup_kernel <<< (pop_size + 1023) / 1024,1024 >>> (devStates, seed, pop_size);
 
 		genProb <<< (pop_size + 1023) / 1024,1024 >>> (pop_size, seed, 
-				prob_select_d, prob_cross_d, prob_mutate_d, cross_loc_d, mutate_loc_d, world->num_cities, devStates);
+				prob_select_d, prob_cross_d, prob_mutate_d, cross_loc_d, mutate_loc_d, world->num_cities);
 
 		cudaEventRecord(stop);
 		cudaEventSynchronize(stop);
@@ -675,7 +675,7 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 	cudaFree(new_pop_d); cudaFree(prob_select_d); cudaFree(prob_cross_d);
 	cudaFree(prob_mutate_d); cudaFree(mutate_loc_d); cudaFree(sel_ix_d);	
 
-	cudaFree(devStates);
+	//cudaFree(devStates);
 
 
 	return false;
