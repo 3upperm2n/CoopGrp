@@ -18,11 +18,12 @@ all: 	main.o main_cpu.o world.o common.o ga_cpu.o ga_gpu.o tsp-ga-gpu tsp-ga-cpu
 
 tsp-ga-gpu: main.o 
 	$(NVCC) $(GENCODE_FLAGS) main.o world.o ga_gpu.o common.o  $(CFLAGS) $(COPTFLAGS) -o tsp-ga-gpu
+
 tsp-ga-cpu: main_cpu.o 
 	$(NVCC) $(GENCODE_FLAGS) main_cpu.o world.o ga_cpu.o common.o  $(CFLAGS) $(COPTFLAGS) -o tsp-ga-cpu
 
 ga_gpu.o: ga_gpu.cu  world.h
-	$(NVCC) $(NVCCFLAGS) $(GENCODE_FLAGS) $(CFLAGS) $(COPTFLAGS) -c ga_gpu.cu 
+	$(NVCC) $(NVCCFLAGS) --ptxas-options=-v  $(GENCODE_FLAGS) $(CFLAGS) $(COPTFLAGS) -c ga_gpu.cu 
 
 
 ga_cpu.o: ga_cpu.cpp  world.h common.h
