@@ -626,17 +626,17 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 		genProb <<< (pop_size + 1023) / 1024,1024 >>> (pop_size, seed, 
 				prob_select_d, prob_cross_d, prob_mutate_d, cross_loc_d, mutate_loc_d, world->num_cities);
 
-		cudaEventRecord(stop);
-		cudaEventSynchronize(stop);
-		timer_ms = 0.f;
-		cudaEventElapsedTime(&timer_ms, start, stop);
-		printf("[Timing] \t\t randProb: %f (ms)\n", timer_ms);
+		//cudaEventRecord(stop);
+		//cudaEventSynchronize(stop);
+		//timer_ms = 0.f;
+		//cudaEventElapsedTime(&timer_ms, start, stop);
+		//printf("[Timing] \t\t randProb: %f (ms)\n", timer_ms);
 
 
 
 
 
-		cudaEventRecord(start);
+		//cudaEventRecord(start);
 
 		// Select the parents
 		//checkCudaErrors(cudaLaunchCooperativeKernel((void *)selection_kernel, dimGrid, dimBlock, kernelArgs, 0, NULL));
@@ -647,7 +647,7 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 		cudaEventSynchronize(stop);
 		timer_ms = 0.f;
 		cudaEventElapsedTime(&timer_ms, start, stop);
-		printf("[Timing] \t\t selection + child (kernels): %f (ms)\n", timer_ms);
+		printf("[Timing] \t\t rand_selection_child : %f (ms)\n", timer_ms);
 
 		// Calculate the fitnesses on the new population
 		error = g_evaluate(new_pop_d, pop_size, Block, Grid, blk_size, grid_size, numSms);
