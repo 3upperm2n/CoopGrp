@@ -1,0 +1,230 @@
+/usr/local/cuda/bin/nvcc -ccbin g++ -I/usr/local/cuda/samples/common/inc -I/usr/local/cuda/include -dc -D_FORCE_INLINES -Xcompiler -fPIC   -gencode arch=compute_70,code=sm_70 -c main.cu -L/usr/local/cuda/lib64 -lcudart -lcuda -lm  -lcurand -lcurand_static -lculibos -O3 -g -std=c++11 
+/usr/local/cuda/bin/nvcc -ccbin g++ -gencode arch=compute_70,code=sm_70 -c main_cpu.cpp -L/usr/local/cuda/lib64 -lcudart -lcuda -lm  -lcurand -lcurand_static -lculibos -O3 -g -std=c++11  
+/usr/local/cuda/bin/nvcc -ccbin g++ -gencode arch=compute_70,code=sm_70 -c world.cpp -L/usr/local/cuda/lib64 -lcudart -lcuda -lm  -lcurand -lcurand_static -lculibos -O3 -g -std=c++11  -I/usr/local/cuda/samples/common/inc -I/usr/local/cuda/include -dc -D_FORCE_INLINES -Xcompiler -fPIC  
+/usr/local/cuda/bin/nvcc -ccbin g++ -gencode arch=compute_70,code=sm_70 -c common.cpp -L/usr/local/cuda/lib64 -lcudart -lcuda -lm  -lcurand -lcurand_static -lculibos -O3 -g -std=c++11 
+/usr/local/cuda/bin/nvcc -ccbin g++ -gencode arch=compute_70,code=sm_70 -c ga_cpu.cpp -L/usr/local/cuda/lib64 -lcudart -lcuda -lm  -lcurand -lcurand_static -lculibos -O3 -g -std=c++11 
+/usr/local/cuda/bin/nvcc -ccbin g++ -I/usr/local/cuda/samples/common/inc -I/usr/local/cuda/include -dc -D_FORCE_INLINES -Xcompiler -fPIC   --ptxas-options=-v  -gencode arch=compute_70,code=sm_70 -L/usr/local/cuda/lib64 -lcudart -lcuda -lm  -lcurand -lcurand_static -lculibos -O3 -g -std=c++11  -c ga_gpu.cu 
+ga_gpu.cu(317): error: expected a ";"
+
+ga_gpu.cu(340): warning: parsing restarts here after previous syntax error
+
+ga_gpu.cu(341): error: identifier "error" is undefined
+
+ga_gpu.cu(342): error: return value type does not match the function type
+
+ga_gpu.cu(345): error: identifier "pop_d" is undefined
+
+ga_gpu.cu(345): error: identifier "i" is undefined
+
+ga_gpu.cu(345): error: identifier "d_city" is undefined
+
+ga_gpu.cu(347): error: return value type does not match the function type
+
+ga_gpu.cu(351): error: expected a declaration
+
+ga_gpu.cu(351): error: expected a declaration
+
+ga_gpu.cu(352): error: expected a declaration
+
+ga_gpu.cu(381): warning: parsing restarts here after previous syntax error
+
+ga_gpu.cu(382): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(382): error: identifier "fit_sum_d" is undefined
+
+ga_gpu.cu(383): error: expected a declaration
+
+ga_gpu.cu(386): error: identifier "pop" is undefined
+
+ga_gpu.cu(387): error: identifier "pop_size" is undefined
+
+ga_gpu.cu(391): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(391): error: declaration is incompatible with "cudaError_t cudaEventRecord(cudaEvent_t, cudaStream_t)"
+/usr/local/cuda/include/cuda_device_runtime_api.h(139): here
+
+ga_gpu.cu(391): error: identifier "start" is undefined
+
+ga_gpu.cu(393): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(393): error: declaration is incompatible with function template "void check(T, const char *, const char *, int)"
+/usr/local/cuda/samples/common/inc/helper_cuda.h(981): here
+
+ga_gpu.cu(393): error: identifier "dimGrid" is undefined
+
+ga_gpu.cu(393): error: identifier "dimBlock" is undefined
+
+ga_gpu.cu(393): error: expected a ")"
+
+ga_gpu.cu(395): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(395): error: variable "cudaEventRecord" has already been defined
+
+ga_gpu.cu(395): error: identifier "stop" is undefined
+
+ga_gpu.cu(396): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(396): error: declaration is incompatible with "cudaError_t cudaEventSynchronize(cudaEvent_t)"
+/usr/local/cuda/include/cuda_runtime_api.h(2489): here
+
+ga_gpu.cu(398): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(398): error: declaration is incompatible with "cudaError_t cudaEventElapsedTime(float *, cudaEvent_t, cudaEvent_t)"
+/usr/local/cuda/include/cuda_runtime_api.h(2557): here
+
+ga_gpu.cu(398): error: a value of type "float *" cannot be used to initialize an entity of type "int"
+
+ga_gpu.cu(398): error: expected a ")"
+
+ga_gpu.cu(399): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(399): error: declaration is incompatible with "int printf(const char *, ...)"
+/usr/include/x86_64-linux-gnu/bits/stdio2.h(102): here
+
+ga_gpu.cu(399): error: a value of type "const char *" cannot be used to initialize an entity of type "int"
+
+ga_gpu.cu(399): error: expected a ")"
+
+ga_gpu.cu(410): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(410): error: declaration is incompatible with "cudaError_t cudaFree(void *)"
+/usr/local/cuda/include/cuda_device_runtime_api.h(143): here
+
+ga_gpu.cu(411): error: expected a declaration
+
+ga_gpu.cu(412): error: expected a declaration
+
+ga_gpu.cu(432): warning: parsing restarts here after previous syntax error
+
+ga_gpu.cu(436): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(436): error: variable "error" has already been defined
+
+ga_gpu.cu(437): error: expected a declaration
+
+ga_gpu.cu(439): error: variable "kernelArgs" has already been defined
+
+ga_gpu.cu(445): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(445): error: variable "cudaEventRecord" has already been defined
+
+ga_gpu.cu(447): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(447): error: variable "check" has already been defined
+
+ga_gpu.cu(447): error: expected a ")"
+
+ga_gpu.cu(449): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(449): error: variable "cudaEventRecord" has already been defined
+
+ga_gpu.cu(450): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(450): error: variable "cudaEventSynchronize" has already been defined
+
+ga_gpu.cu(451): error: variable "timer_ms" has already been defined
+
+ga_gpu.cu(452): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(452): error: variable "cudaEventElapsedTime" has already been defined
+
+ga_gpu.cu(452): error: a value of type "float *" cannot be used to initialize an entity of type "int"
+
+ga_gpu.cu(452): error: expected a ")"
+
+ga_gpu.cu(453): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(453): error: variable "printf" has already been defined
+
+ga_gpu.cu(453): error: a value of type "const char *" cannot be used to initialize an entity of type "int"
+
+ga_gpu.cu(453): error: expected a ")"
+
+ga_gpu.cu(463): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(463): error: variable "error" has already been defined
+
+ga_gpu.cu(465): error: expected a declaration
+
+ga_gpu.cu(467): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(467): error: expected a ";"
+
+ga_gpu.cu(470): error: expected a declaration
+
+ga_gpu.cu(473): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(473): error: variable "cudaFree" has already been defined
+
+ga_gpu.cu(473): error: a value of type "float *" cannot be used to initialize an entity of type "int"
+
+ga_gpu.cu(474): error: expected a declaration
+
+ga_gpu.cu(475): error: expected a declaration
+
+ga_gpu.cu(501): warning: parsing restarts here after previous syntax error
+
+ga_gpu.cu(503): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(503): error: variable "error" has already been defined
+
+ga_gpu.cu(503): error: identifier "generation_leader" is undefined
+
+ga_gpu.cu(503): error: identifier "gen_leader_d" is undefined
+
+ga_gpu.cu(504): error: expected a declaration
+
+ga_gpu.cu(506): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(506): error: variable "d_ptr" has already been defined
+
+ga_gpu.cu(507): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(507): error: expected a ";"
+
+ga_gpu.cu(508): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(508): error: variable "error" has already been defined
+
+ga_gpu.cu(508): error: expression must have pointer type
+
+ga_gpu.cu(508): error: expression must have pointer type
+
+ga_gpu.cu(509): error: expected a declaration
+
+ga_gpu.cu(512): error: expected a declaration
+
+ga_gpu.cu(519): warning: parsing restarts here after previous syntax error
+
+ga_gpu.cu(519): error: expected a declaration
+
+ga_gpu.cu(520): error: expected a declaration
+
+ga_gpu.cu(541): warning: parsing restarts here after previous syntax error
+
+ga_gpu.cu(545): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(545): error: declaration is incompatible with overloaded function "cudaEventCreate"
+/usr/local/cuda/include/cuda_runtime_api.h(2356): here
+
+ga_gpu.cu(545): error: a value of type "cudaEvent_t *" cannot be used to initialize an entity of type "int"
+
+ga_gpu.cu(546): error: this declaration has no storage class or type specifier
+
+ga_gpu.cu(546): error: variable "cudaEventCreate" has already been defined
+
+ga_gpu.cu(546): error: a value of type "cudaEvent_t *" cannot be used to initialize an entity of type "int"
+
+ga_gpu.cu(548): error: variable "timer_ms" has already been defined
+
+ga_gpu.cu(552): error: variable "error" has already been defined
+
+ga_gpu.cu(555): error: identifier "seed" is undefined
+
+ga_gpu.cu(559): error: identifier "blk_size" is undefined
+
+Error limit reached.
+100 errors detected in the compilation of "/tmp/tmpxft_0000f75d_00000000-6_ga_gpu.cpp1.ii".
+Compilation terminated.
+Makefile:26: recipe for target 'ga_gpu.o' failed
+make: *** [ga_gpu.o] Error 1

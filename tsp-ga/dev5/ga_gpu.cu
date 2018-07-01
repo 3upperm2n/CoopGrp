@@ -99,8 +99,23 @@ extern "C" __global__ void fitness_kernel(World* pop, int pop_size, float *fit_s
 	cg::grid_group grid = cg::this_grid();
 	int tid = grid.thread_rank();
 
+	/*
 	//for (int tid = grid.thread_rank(); tid < pop_size; tid += grid.size()) {
 	if (tid < pop_size) {
+		float distance = 0.f; // Total "normalized" "distance"
+		int city_num = pop[tid].num_cities - 1;
+		for (int i=0; i<city_num; i++) {
+			float loc_x = pop[tid].cities[i].x - pop[tid].cities[i + 1].x;
+			float loc_y = pop[tid].cities[i].y - pop[tid].cities[i + 1].y;
+			distance += loc_x * loc_x + loc_y * loc_y;
+		}
+
+		pop[tid].fitness = (pop[tid].width * pop[tid].height) / distance;
+	}
+	*/
+
+	for (int tid = grid.thread_rank(); tid < pop_size;  tid += grid.size()) 
+	{
 		float distance = 0.f; // Total "normalized" "distance"
 		int city_num = pop[tid].num_cities - 1;
 		for (int i=0; i<city_num; i++) {
@@ -114,8 +129,20 @@ extern "C" __global__ void fitness_kernel(World* pop, int pop_size, float *fit_s
 
 	cg::sync(grid);
 
+	/*
 	//for (int tid = grid.thread_rank(); tid < pop_size; tid += grid.size()) {
 	if (tid < pop_size) {
+		float sum = 0.f;
+		for (int i=0; i<=tid; i++)
+			sum += pop[i].fitness;
+		pop[tid].fit_prob = sum;
+		if (tid == (pop_size - 1)) {
+			*fit_sum = sum;
+		}
+	}
+	*/
+
+	for (int tid = grid.thread_rank(); tid < pop_size; tid += grid.size()) {
 		float sum = 0.f;
 		for (int i=0; i<=tid; i++)
 			sum += pop[i].fitness;
@@ -127,7 +154,12 @@ extern "C" __global__ void fitness_kernel(World* pop, int pop_size, float *fit_s
 
 	cg::sync(grid);
 
+	/*
 	if (tid < pop_size) {
+		pop[tid].fit_prob /= *fit_sum;
+	}
+	*/
+	for (int tid = grid.thread_rank(); tid < pop_size; tid += grid.size()) {
 		pop[tid].fit_prob /= *fit_sum;
 	}
 }
@@ -228,8 +260,9 @@ extern "C" __global__ void selection_child_kernel(World* old_pop,
 		const int num_cities)
 {
 	cg::grid_group grid = cg::this_grid();
-	int tid = grid.thread_rank();
+	//int tid = grid.thread_rank();
 
+	/*
 	if (tid < pop_size)
 	{
 		curandState state;
@@ -250,6 +283,29 @@ extern "C" __global__ void selection_child_kernel(World* old_pop,
 		}
 		mutate_loc[tid + tid]      = mutate_1;
 		mutate_loc[tid + tid + 1]  = mutate_2;
+	}
+	*/
+
+	for (int i = grid.thread_rank(); i < pop_size;  i += grid.size()) 
+	{
+		curandState state;
+		curand_init(seed, i, 0, &state);
+
+		rand_nums[i + i]     = curand_uniform(&state);
+		rand_nums[i + i + 1] = curand_uniform(&state);
+		prob_cross[i]          = curand_uniform(&state);
+		prob_mutate[i]         = curand_uniform(&state);
+		cross_loc[i]           = (int)(curand_uniform(&state) * (num_cities - 1));
+
+
+		int mutate_1 = (int)(curand_uniform(&state) * num_cities);
+		int mutate_2 = (int)(curand_uniform(&state) * num_cities);
+		while (mutate_2 == mutate_1)
+		{
+			mutate_2 = (int)(curand_uniform(&state) * num_cities);
+		}
+		mutate_loc[i + i]      = mutate_1;
+		mutate_loc[i + i + 1]  = mutate_2;
 	}
 
 	cg::sync(grid);
@@ -341,6 +397,12 @@ bool g_evaluate(World *pop, int pop_size, dim3 Block, dim3 Grid, int blk_size, i
 
 
 
+
+
+
+
+
+
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
 	cudaEventCreate(&stop);
@@ -368,11 +430,88 @@ bool g_evaluate(World *pop, int pop_size, dim3 Block, dim3 Grid, int blk_size, i
 	cudaEventElapsedTime(&timer_ms, start, stop);
 	printf("[Timing] \t\t g_evaluate : %f (ms)\n", timer_ms);
 
+
+	//---//
+	// copy pop back to host for verification
+	//---//
+
+
+
+
+
 	cudaFree(fit_sum_d); 
 	return false;
 }
 
 
+bool g_evaluate_v1(World *pop, int pop_size, int numSms)
+{
+	int numBlocksPerSm = 0;
+	checkCudaErrors(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm, 
+				fitness_kernel, THREADS_PER_BLOCK, 0));
+	printf("numBlocksPerSm: %d\n", numBlocksPerSm);
+
+
+	// NOTE: 80 sms x 4 max blocks (for 512 as the block size)
+	dim3 dimGrid(numSms*numBlocksPerSm, 1, 1), dimBlock(THREADS_PER_BLOCK, 1, 1);
+
+
+	// 
+	size_t launched_threads = dimGrid.x * dimBlock.x;
+	cout << "[g_evaluate_v1] => launching threads : " <<  launched_threads  << endl;
+	cout << "[g_evaluate_v1] => pop_size " << pop_size  << endl;
+
+	if(pop_size > launched_threads)
+		cout << "[Warning] : pop_size > launched threads!" << endl;
+
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
+	bool error;
+
+	// Allocate fitness sum on the GPU
+	float *fit_sum_d;
+	error = checkForError(cudaMalloc((void**)&fit_sum_d, sizeof(float)));
+	if (error) return true;
+
+	void *kernelArgs[] = {
+		(void*)&pop,
+		(void*)&pop_size,
+		(void*)&fit_sum_d,
+	};
+
+	cudaEventRecord(start);
+
+	checkCudaErrors(cudaLaunchCooperativeKernel((void *)fitness_kernel, dimGrid, dimBlock, kernelArgs, 0, NULL));
+
+	cudaEventRecord(stop);
+	cudaEventSynchronize(stop);
+	float timer_ms = 0.f;
+	cudaEventElapsedTime(&timer_ms, start, stop);
+	printf("[Timing] \t\t g_evaluate : %f (ms)\n", timer_ms);
+
+
+	//---//
+	// copy pop back to host for verification
+	//---//
+
+	World *tmp = new World[sizeof(World)];
+
+	// copy world to host
+	error = checkForError(cudaMemcpy(tmp, pop, sizeof(World), cudaMemcpyDeviceToHost));
+
+	for(int i=0; i<10; i++)
+		cout << tmp[i].fit_prob << endl;
+	cout << endl;
+
+
+	delete [] tmp;
+
+
+	cudaFree(fit_sum_d); 
+	return false;
+}
 
 int g_select_leader(World* pop, int pop_size, World* generation_leader,
 		World* best_leader, dim3 Block, dim3 Grid)
@@ -431,6 +570,15 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 	printf("numBlocksPerSm: %d\n", numBlocksPerSm);
 
 	dim3 dimGrid(numSms*numBlocksPerSm, 1, 1), dimBlock(THREADS_PER_BLOCK, 1, 1);
+
+	// 
+	size_t launched_threads = dimGrid.x * THREADS_PER_BLOCK;
+	cout << "[g_execute] => launching threads : " <<  launched_threads  << endl;
+	cout << "=> pop_size " << pop_size  << endl;
+
+	if(pop_size > launched_threads)
+		cout << "[Warning] : pop_size > launched threads!" << endl;
+
 
 	cudaEvent_t start, stop;
 	cudaEventCreate(&start);
@@ -557,7 +705,7 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 		printf("[Timing] \t\t  rand_selection_child (merged): %f (ms)\n", timer_ms);
 
 		// Calculate the fitnesses on the new population
-		error = g_evaluate(new_pop_d, pop_size, Block, Grid, blk_size, grid_size, numSms);
+		error = g_evaluate_v1(new_pop_d, pop_size, numSms);
 		if (error) return true;	
 
 		// Swap the populations
@@ -571,6 +719,8 @@ bool g_execute(float prob_mutation, float prob_crossover, int pop_size, int max_
 			return true;
 		else if (1 == sel) best_generation = i + 1;
 		print_status(generation_leader, best_leader, i + 1);
+
+		break;
 	} 
 
 	cout << endl << "Best generation found at " << best_generation << " generations" << endl;
