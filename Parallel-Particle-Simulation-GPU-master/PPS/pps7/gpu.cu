@@ -63,7 +63,7 @@ __global__ void compute_forces_gpu( particle_t * particles, int n )
   }
 }
 
-__global__ void move_gpu ( particle_t * particles, int n, double size )
+__global__ void move_gpu ( particle_t * particles, int n, double size, float *array )
 {
 
   	// Get thread (particle) ID
@@ -105,8 +105,11 @@ __global__ void move_gpu ( particle_t * particles, int n, double size )
         	py  = py < 0 ? -( py ) : 2 * size - py;
         	pvy = -( pvy );
     	}
-
-		}
+        array[tid] = pvx;
+	array[tid+1] = pvy;
+	array[tid+2] = px;
+	array[tid+3] = py;
+	}
 }
 
 
