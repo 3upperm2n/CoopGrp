@@ -145,6 +145,7 @@ int main( int argc, char **argv )
 
     	// GPU particle data structure
     	particle_t * d_particles;
+	float *array;
     	cudaMalloc( ( void ** ) &d_particles, n * sizeof( particle_t ) );
 
     	set_size( n );
