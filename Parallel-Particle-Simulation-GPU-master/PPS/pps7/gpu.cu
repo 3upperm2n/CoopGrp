@@ -26,10 +26,10 @@ __device__ void apply_force_gpu( particle_t &particle, particle_t &neighbor )
   	double r2 = dx * dx + dy * dy;
 
 	if( r2 > cutoff*cutoff )
-//	{
-//      		return;
-//	}
-		{
+        {
+      		return;
+	}
+
   	//r2 = fmax( r2, min_r*min_r );
   	r2 = (r2 > min_r*min_r) ? r2 : min_r*min_r;
 
@@ -41,7 +41,7 @@ __device__ void apply_force_gpu( particle_t &particle, particle_t &neighbor )
   	double coef = ( 1 - cutoff / r ) / r2 / mass;
   	particle.ax += coef * dx;
   	particle.ay += coef * dy;
-	}
+
 }
 
 __global__ void compute_forces_gpu( particle_t * particles, int n )
@@ -50,29 +50,29 @@ __global__ void compute_forces_gpu( particle_t * particles, int n )
   	int tid = threadIdx.x + blockIdx.x * blockDim.x;
 
 	if( tid >= n )
-//	{
-// 		return;
-//	}
 	{
+		return;
+	}
+
   	particles[ tid ].ax = particles[ tid ].ay = 0;
 
 	for( int j = 0 ; j < n ; j++ )
 	{
     		apply_force_gpu( particles[ tid ], particles[ j ] );
 	}
-  }
+
 }
 
-__global__ void move_gpu ( particle_t * particles, int n, double size, float *array )
+__global__ void move_gpu ( particle_t * particles, int n, double size )
 {
 
   	// Get thread (particle) ID
   	int tid = threadIdx.x + blockIdx.x * blockDim.x;
   	if( tid >= n )
-//	{
-//		return;
-//	}
-  	{
+	{
+		return;
+	}
+  
 	particle_t * p = &particles[ tid ];
 
 	//
@@ -105,11 +105,11 @@ __global__ void move_gpu ( particle_t * particles, int n, double size, float *ar
         	py  = py < 0 ? -( py ) : 2 * size - py;
         	pvy = -( pvy );
     	}
-        array[tid] = pvx;
-	array[tid+1] = pvy;
-	array[tid+2] = px;
-	array[tid+3] = py;
-	}
+        p->vx = pvx:
+	p->vy = pvy;
+	p->x = px;
+	p->y = py;
+
 }
 
 
