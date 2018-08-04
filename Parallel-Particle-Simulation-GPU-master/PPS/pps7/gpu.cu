@@ -179,8 +179,26 @@ int main( int argc, char **argv )
         	//
         	//  move particles
         	//
+		//move_gpu <<< blks, NUM_THREADS >>> ( d_particles, n, size );
+		//
+                cudaEvent_t start, stop;
+		cudaEventCreate(&start);
+		cudaEventCreate(&stop);
+		
+		cudaMemcpy( particles, d_particles, n * sizeof( particle_t ), cudaMemcpyHostToDevice);
+		
+		cudaEventRecord(start);
+		
 		move_gpu <<< blks, NUM_THREADS >>> ( d_particles, n, size );
-
+		
+		cudaEventRecord(stop);
+		
+		cudaMemcpy( particles, d_particles, n * sizeof( particle_t ), cudaMemcpyDeviceToHost);
+		
+		cudaEventSynchronize(stop);
+		float milliseconds = 0;
+		cudaEventElapsedTime(&milliseconds, start, stop);
+		//
         	//
         	//  save if necessary
         	//
@@ -197,8 +215,10 @@ int main( int argc, char **argv )
 
     	printf( "CPU-GPU copy time = %g seconds\n", copy_time );
     	printf( "n = %d, simulation time = %g seconds\n", n, simulation_time );
-
-    	free( particles );
+        //
+	printf( "cudaEventElapsedTime = %g seconds\n", cudaEventElapsedTime );
+    	//
+	free( particles );
     	cudaFree( d_particles );
 
 	if( fsave )
