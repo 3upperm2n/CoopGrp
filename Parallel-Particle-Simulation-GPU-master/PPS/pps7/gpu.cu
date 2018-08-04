@@ -129,7 +129,7 @@ int main( int argc, char **argv )
         	return 0;
     	}
 
-    	int n = read_int( argc, argv, "-n", 1000 );
+    	int n = read_int( argc, argv, "-n", 1.0e5 );
 
     	char *savename = read_string( argc, argv, "-o", NULL );
 
@@ -166,8 +166,10 @@ int main( int argc, char **argv )
     	//
     	//cudaThreadSynchronize();
     	double simulation_time = read_timer( );
-
-    	for( int step = 0; step < NSTEPS; step++ )
+	
+	float milliseconds = 0;
+    	
+	for( int step = 0; step < NSTEPS; step++ )
     	{
     		//
         	//  compute forces
@@ -196,7 +198,7 @@ int main( int argc, char **argv )
 		cudaMemcpy( particles, d_particles, n * sizeof( particle_t ), cudaMemcpyDeviceToHost);
 		
 		cudaEventSynchronize(stop);
-		float milliseconds = 0;
+		
 		cudaEventElapsedTime(&milliseconds, start, stop);
 		//
         	//
@@ -216,7 +218,7 @@ int main( int argc, char **argv )
     	printf( "CPU-GPU copy time = %g seconds\n", copy_time );
     	printf( "n = %d, simulation time = %g seconds\n", n, simulation_time );
         //
-	printf( "cudaEventElapsedTime = %g seconds\n", cudaEventElapsedTime );
+	printf( "Move_gpu Execution Time = %g ms\n", milliseconds);
     	//
 	free( particles );
     	cudaFree( d_particles );
