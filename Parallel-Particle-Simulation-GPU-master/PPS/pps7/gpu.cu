@@ -190,6 +190,7 @@ int main( int argc, char **argv )
 		cudaEventSynchronize(stop);
 		
 		cudaEventElapsedTime(&milliseconds, start, stop);
+		printf( "Move_gpu Execution Time = %g ms\n", milliseconds);
         	//
         	//  save if necessary
         	//
@@ -206,7 +207,6 @@ int main( int argc, char **argv )
 
     	printf( "CPU-GPU copy time = %g seconds\n", copy_time );
     	printf( "n = %d, simulation time = %g seconds\n", n, simulation_time );
-        printf( "Move_gpu Execution Time = %g ms\n", milliseconds);
 
 	free( particles );
     	cudaFree( d_particles );
