@@ -172,6 +172,7 @@ int main( int argc, char **argv )
     	//cudaThreadSynchronize();
     	double simulation_time = read_timer( );
 	float milliseconds = 0;
+	float sum = 0;
 	for( int step = 0; step < NSTEPS; step++ )
     	{
     		//
@@ -191,7 +192,8 @@ int main( int argc, char **argv )
 		
 		cudaEventElapsedTime(&milliseconds, start, stop);
 		printf( "Move_gpu Execution Time = %g ms\n", milliseconds);
-        	//
+        	sum += milliseconds;
+		//
         	//  save if necessary
         	//
         	if( fsave && ( step%SAVEFREQ ) == 0 )
@@ -207,6 +209,7 @@ int main( int argc, char **argv )
 
     	printf( "CPU-GPU copy time = %g seconds\n", copy_time );
     	printf( "n = %d, simulation time = %g seconds\n", n, simulation_time );
+	printf( "Move_gpu kernel average execution time = %g ms\n", sum / NSTEPS);
 
 	free( particles );
     	cudaFree( d_particles );
